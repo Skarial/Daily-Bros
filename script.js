@@ -1,19 +1,38 @@
+// Liste des URL des fonds d'écran
+const backgrounds = [
+  "url('assets/fond_ecran.webp')",
+  "url('assets/fond_ecran2.webp')",
+  "url('assets/fond_ecran.webp')",
+  "url('assets/fond_ecran2.webp')",
+];
+
+let currentBackgroundIndex = 0; // Indice du fond d'écran actuellement affiché
+
+// Fonction pour changer dynamiquement le fond d'écran
+function changeBackground() {
+  document.body.style.backgroundImage = backgrounds[currentBackgroundIndex];
+  currentBackgroundIndex = (currentBackgroundIndex + 1) % backgrounds.length;
+}
+
+// Changer le fond d'écran toutes les deux secondes
+setInterval(changeBackground, 2000);
+
 document.addEventListener("DOMContentLoaded", function () {
   let initialCount = 0;
   let count = 0;
   let timerTimeout;
   let isTimerRunning = false;
   let isGoButtonClicked = false; // Nouvelle variable pour suivre l'état du bouton "GO"
-  let bangSound = new Audio("assets/bang.wav");
-  let ticTacSound = new Audio("assets/tictac2.wav");
+  let overSound = new Audio("assets/game_over.mp3");
+  let partieSound = new Audio("assets/partie.wav");
   const display = document.querySelector("#time");
-  const imgBombe = document.querySelector(".img_bombe");
+  const imgPrincesse = document.querySelector(".img_princesse");
   const suivantButton = document.querySelector(".btn_suivant");
 
-  const ticTacVolume = 0.2;
-  ticTacSound.volume = ticTacVolume;
+  const partieVolume = 0.2;
+  partieSound.volume = partieVolume;
   const audioElementVolume = 1;
-  bangSound.volume = audioElementVolume;
+  overSound.volume = audioElementVolume;
 
   // Ajout d'une variable pour suivre l'état initial du site
   let siteOpened = false;
@@ -25,13 +44,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function handleTimerExpiration() {
-    imgBombe.src = "assets/boum.png";
-    bangSound.play().then(() => {
-      bangSound.addEventListener("ended", resetTimer);
+    imgPrincesse.src = "assets/monstre.png";
+    overSound.play().then(() => {
+      overSound.addEventListener("ended", resetTimer);
     });
 
-    ticTacSound.pause();
-    ticTacSound.currentTime = 0;
+    partieSound.pause();
+    partieSound.currentTime = 0;
 
     isTimerRunning = false;
   }
@@ -40,12 +59,12 @@ document.addEventListener("DOMContentLoaded", function () {
     count = initialCount;
     isTimerRunning = false;
     updateTimerDisplay();
-    imgBombe.src = "assets/bombe.png";
+    imgPrincesse.src = "assets/princesse.png";
     clearTimeout(timerTimeout);
     timerTimeout = null;
 
-    ticTacSound.pause();
-    ticTacSound.currentTime = 0;
+    partieSound.pause();
+    partieSound.currentTime = 0;
   }
 
   function startTimer(duration) {
@@ -63,7 +82,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     update();
-    ticTacSound.play();
+    partieSound.play();
   }
 
   const plusButton = document.querySelector(".btn_plus");
@@ -106,20 +125,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
   suivantButton.addEventListener("click", function () {
     resetTimer();
-    bangSound.pause();
-    bangSound.currentTime = 0;
+    overSound.pause();
+    overSound.currentTime = 0;
     startTimer(count);
   });
 
   muteButton.addEventListener("click", function () {
-    if (bangSound.volume > 0 || ticTacSound.volume > 0) {
+    if (overSound.volume > 0 || partieSound.volume > 0) {
       // Si le son est actuellement activé, le désactiver en mettant le volume à zéro
-      bangSound.volume = 0;
-      ticTacSound.volume = 0;
+      overSound.volume = 0;
+      partieSound.volume = 0;
     } else {
       // Si le son est actuellement désactivé, le réactiver en remettant le volume à sa valeur initiale
-      bangSound.volume = audioElementVolume;
-      ticTacSound.volume = ticTacVolume;
+      overSound.volume = audioElementVolume;
+      partieSound.volume = partieVolume;
     }
   });
 
