@@ -1,40 +1,19 @@
-// Liste des URL des fonds d'écran
-const backgrounds = [
-  "url('assets/fond_ecran.webp')",
-  "url('assets/fond_ecran2.webp')",
-  "url('assets/fond_ecran.webp')",
-  "url('assets/fond_ecran2.webp')",
-];
-
-let currentBackgroundIndex = 0; // Indice du fond d'écran actuellement affiché
-
-// Fonction pour changer dynamiquement le fond d'écran
-function changeBackground() {
-  document.body.style.backgroundImage = backgrounds[currentBackgroundIndex];
-  currentBackgroundIndex = (currentBackgroundIndex + 1) % backgrounds.length;
-}
-
-// Changer le fond d'écran toutes les deux secondes
-setInterval(changeBackground, 2000);
-
 document.addEventListener("DOMContentLoaded", function () {
+  const muteButton = document.querySelector(".btn_mute");
   let initialCount = 0;
   let count = 0;
   let timerTimeout;
   let isTimerRunning = false;
-  let isGoButtonClicked = false; // Nouvelle variable pour suivre l'état du bouton "GO"
-  let overSound = new Audio("assets/game_over.mp3");
+  let isGoButtonClicked = false;
+  let isNextButtonEnabled = false;
+  let overSound = new Audio("assets/over.mp3");
   let partieSound = new Audio("assets/partie.wav");
   const display = document.querySelector("#time");
   const imgPrincesse = document.querySelector(".img_princesse");
   const suivantButton = document.querySelector(".btn_suivant");
-
-  const partieVolume = 0.2;
-  partieSound.volume = partieVolume;
-  const audioElementVolume = 1;
-  overSound.volume = audioElementVolume;
-
-  // Ajout d'une variable pour suivre l'état initial du site
+  const goButton = document.querySelector(".btn_go");
+  const plusButton = document.querySelector(".btn_plus");
+  const moinsButton = document.querySelector(".btn_moins");
   let siteOpened = false;
 
   function updateTimerDisplay() {
@@ -45,14 +24,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function handleTimerExpiration() {
     imgPrincesse.src = "assets/monstre.png";
-    overSound.play().then(() => {
-      overSound.addEventListener("ended", resetTimer);
-    });
+    overSound.play();
 
     partieSound.pause();
     partieSound.currentTime = 0;
 
     isTimerRunning = false;
+    partieSound.addEventListener("pause", resetPartieSound);
+    partieSound.addEventListener("ended", resetPartieSound);
+  }
+
+  function resetPartieSound() {
+    partieSound.removeEventListener("pause", resetPartieSound);
+    partieSound.removeEventListener("ended", resetPartieSound);
+    partieSound.currentTime = 0;
   }
 
   function resetTimer() {
@@ -62,9 +47,12 @@ document.addEventListener("DOMContentLoaded", function () {
     imgPrincesse.src = "assets/princesse.png";
     clearTimeout(timerTimeout);
     timerTimeout = null;
-
     partieSound.pause();
     partieSound.currentTime = 0;
+
+    // Réactiver les boutons "Plus 30 secondes" et "Moins 30 secondes"
+    plusButton.disabled = false;
+    moinsButton.disabled = false;
   }
 
   function startTimer(duration) {
@@ -82,19 +70,28 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     update();
-    partieSound.play();
-  }
 
-  const plusButton = document.querySelector(".btn_plus");
-  const moinsButton = document.querySelector(".btn_moins");
-  const goButton = document.querySelector(".btn_go");
-  const muteButton = document.querySelector(".btn_mute");
+    // Réduire le volume de partieSound lorsque le minuteur démarre
+    partieSound.volume = 0.1; // Ajustez la valeur du volume selon vos besoins
+    partieSound.play();
+
+    // Désactiver les boutons "Plus 30 secondes" et "Moins 30 secondes" lorsque le minuteur démarre
+    plusButton.disabled = true;
+    moinsButton.disabled = true;
+  }
 
   plusButton.addEventListener("click", function () {
     if (!isTimerRunning) {
       count += 30;
       initialCount = count;
       updateTimerDisplay();
+
+      if (!siteOpened) {
+        siteOpened = true;
+        goButton.disabled = false;
+        suivantButton.disabled = true; // Bloquer le bouton "Suivant" à l'ouverture du site
+        isNextButtonEnabled = true;
+      }
     }
   });
 
@@ -103,42 +100,59 @@ document.addEventListener("DOMContentLoaded", function () {
       count -= 30;
       initialCount = count;
       updateTimerDisplay();
+
+      if (!siteOpened) {
+        siteOpened = true;
+        goButton.disabled = false;
+        suivantButton.disabled = true; // Bloquer le bouton "Suivant" à l'ouverture du site
+        isNextButtonEnabled = true;
+      }
     }
   });
+
+  function disablePlusMinusButtons() {
+    plusButton.disabled = true;
+    moinsButton.disabled = true;
+  }
+
+  function enablePlusMinusButtons() {
+    plusButton.disabled = false;
+    moinsButton.disabled = false;
+  }
 
   goButton.addEventListener("click", function () {
     if (!isTimerRunning && !isGoButtonClicked) {
       startTimer(count);
       isTimerRunning = true;
-      isGoButtonClicked = true; // Mettre à true après le premier clic sur le bouton "GO"
+      isGoButtonClicked = true;
 
-      // Débloquer le bouton "suivant" après avoir appuyé sur le bouton "go" une première fois
-      if (!siteOpened) {
-        siteOpened = true;
-        suivantButton.disabled = false;
-      }
+      goButton.disabled = true;
+      disablePlusMinusButtons();
+
+      isNextButtonEnabled = true;
+      suivantButton.disabled = !isNextButtonEnabled; // Débloquer le bouton "Suivant" après avoir cliqué sur le bouton "GO"
     }
   });
 
-  // Désactiver le bouton "suivant" à l'ouverture du site
-  suivantButton.disabled = true;
-
   suivantButton.addEventListener("click", function () {
-    resetTimer();
-    overSound.pause();
-    overSound.currentTime = 0;
-    startTimer(count);
+    if (isNextButtonEnabled) {
+      resetTimer();
+      overSound.pause();
+      overSound.currentTime = 0;
+      startTimer(count);
+    }
   });
+
+  suivantButton.disabled = true;
+  goButton.disabled = true;
 
   muteButton.addEventListener("click", function () {
     if (overSound.volume > 0 || partieSound.volume > 0) {
-      // Si le son est actuellement activé, le désactiver en mettant le volume à zéro
       overSound.volume = 0;
       partieSound.volume = 0;
     } else {
-      // Si le son est actuellement désactivé, le réactiver en remettant le volume à sa valeur initiale
-      overSound.volume = audioElementVolume;
-      partieSound.volume = partieVolume;
+      overSound.volume = 0.5;
+      partieSound.volume = 0.1;
     }
   });
 
